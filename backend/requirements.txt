@@ -1,0 +1,8 @@
+flask
+flask-cors
+python-dotenv
+supabase
+pyjwt
+openai
+requests
+python-dateutil
