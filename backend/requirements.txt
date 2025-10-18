@@ -6,3 +6,5 @@ pyjwt
 openai
 requests
 python-dateutil
+numpy
+pandas

@@ -1,0 +1,18 @@
+{
+    "1": {
+      "employee_id": "1",
+      "name": "Samantha Lee",
+      "job_title": "Cloud Solutions Architect",
+      "department": "Information Technology",
+      "skills": ["cloud architecture", "systems design", "project management"],
+      "vector": [0, 0, 0]
+    },
+    "2": {
+      "employee_id": "2",
+      "name": "Aisyah Rahman",
+      "job_title": "Data Analyst",
+      "department": "Business Analytics",
+      "skills": ["data visualization", "python", "sql"],
+      "vector": [0, 0, 0]
+    }
+  }

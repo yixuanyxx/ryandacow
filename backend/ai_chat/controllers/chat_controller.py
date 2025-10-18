@@ -47,3 +47,15 @@ def clear_chat():
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
+
+@chat_bp.route("/guidance", methods=["POST"])
+@require_auth
+def guidance():
+    body = request.get_json(silent=True) or {}
+    message = body.get("message", "")
+    user = getattr(request, "user", {}) or {}
+    user_id = user.get("id") or body.get("user_id")  # fallback if needed
+    context = {"user_profile": user, "user_skills": []}
+    service = ChatService()
+    result = service.generate_career_guidance(user_id, message, context)
+    return jsonify(result), result.get("Code", 200)

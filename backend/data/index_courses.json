@@ -1,0 +1,23 @@
+[
+    {
+      "id": 101,
+      "title": "Advanced Systems Design",
+      "description": "Learn to design scalable, fault-tolerant systems using real-world case studies.",
+      "required_skills": ["systems design"],
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 102,
+      "title": "Leadership Fundamentals",
+      "description": "Develop core team leadership and communication skills for technical managers.",
+      "required_skills": ["team leadership", "communication"],
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 103,
+      "title": "Agile Project Management",
+      "description": "Master agile principles for leading teams and delivering software efficiently.",
+      "required_skills": ["project management", "agile methodology"],
+      "vector": [0, 0, 0]
+    }
+  ]

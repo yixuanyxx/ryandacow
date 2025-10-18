@@ -4,6 +4,7 @@ from repo.chat_repo import ChatRepo
 from typing import Dict, Any, Optional
 from datetime import datetime, UTC
 import os
+from backend.ai_chat.orchestrator import run_full_plan
 
 class ChatService:
     def __init__(self, chat_repo: Optional[ChatRepo] = None):
@@ -96,26 +97,56 @@ class ChatService:
             "user_skills": user_skills
         }
 
+    def generate_career_guidance(self, user_id: int, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            result = run_full_plan(user_id)
+            return {
+                "Code": 200,
+                "Message": "AI guidance generated",
+                "data": {
+                    "summary": result["summary"],          # human text (mock or LLM)
+                    "plan": result["plan"],                # structured JSON (targets, gaps, courses, mentors, milestones)
+                    "leadership": result["leadership"],    # score/level/rationale/plan
+                    "alternatives": result["alternatives"] # 2 more role options
+                }
+            }
+        except FileNotFoundError as e:
+            return {
+                "Code": 503,
+                "Message": "Guidance unavailable (indices not built yet).",
+                "data": {"hint": "Run backend/scripts/build_semantic_catalog after embeddings are ready.", "detail": str(e)}
+            }
+        except Exception as e:
+            return {"Code": 500, "Message": f"Internal error: {str(e)}"}
+
     def _generate_ai_response(self, user_id: int, message: str, context: Dict[str, Any]) -> str:
         """Generate AI response - MVP version with predefined responses"""
         
         # Get user context
-        user_profile = context.get('user_profile', {})
-        user_skills = context.get('user_skills', [])
-        
-        user_name = user_profile.get('first_name', 'there')
+        user_profile = context.get('user_profile', {}) or {}
+        user_skills = context.get('user_skills', []) or []
+
+        # Prefer single 'name'; derive first_name if present
+        full_name = user_profile.get('name') or f"{user_profile.get('first_name','').strip()} {user_profile.get('last_name','').strip()}".strip()
+        first_name = (full_name or "there").split(" ", 1)[0]
         job_title = user_profile.get('job_title', 'employee')
         department = user_profile.get('department', 'your department')
         
         # Extract skills for context
-        skill_names = [skill.get('skills', {}).get('name', '') for skill in user_skills if skill.get('skills')]
+        skill_names = []
+        for s in user_skills:
+            if isinstance(s, dict):
+                if "name" in s and s.get("name"):
+                    skill_names.append(s["name"])
+                elif "skills" in s and isinstance(s["skills"], dict) and s["skills"].get("name"):
+                    skill_names.append(s["skills"]["name"])
         
         # Predefined responses based on common questions
         message_lower = message.lower()
         
         if any(word in message_lower for word in ['skill', 'skills', 'learn', 'develop']):
             if 'tech lead' in message_lower or 'lead' in message_lower:
-                return f"""Hi {user_name}! Based on your profile as a {job_title} in {department}, here are the key skills you need to become a Tech Lead:
+                return f"""Hi {first_name}! Based on your profile as a {job_title} in {department}, here are the key skills you need to become a Tech Lead:
 
 **High Priority Skills:**
 • Team Leadership - Lead and mentor development teams
@@ -129,7 +160,7 @@ class ChatService:
 I recommend starting with our "Leadership Fundamentals" course to build your team leadership skills. Would you like me to suggest specific training courses for any of these areas?"""
 
             elif 'course' in message_lower or 'training' in message_lower:
-                return f"""Great question, {user_name}! Based on your current skills in {', '.join(skill_names[:3]) if skill_names else 'your field'}, I recommend these courses:
+                return f"""Great question, {first_name}! Based on your current skills in {', '.join(skill_names[:3]) if skill_names else 'your field'}, I recommend these courses:
 
 **For your career growth:**
 • Advanced Python for Leaders (40 hours) - Builds on your Python skills
@@ -144,7 +175,7 @@ I recommend starting with our "Leadership Fundamentals" course to build your tea
 Would you like more details about any of these courses?"""
 
             else:
-                return f"""Hi {user_name}! I'd be happy to help you with skill development. 
+                return f"""Hi {first_name}! I'd be happy to help you with skill development. 
 
 Based on your role as a {job_title}, here are some areas to focus on:
 
@@ -161,7 +192,7 @@ Based on your role as a {job_title}, here are some areas to focus on:
 What specific skills are you most interested in developing? I can provide personalized recommendations based on your career goals."""
 
         elif any(word in message_lower for word in ['mentor', 'mentorship', 'advice', 'guidance']):
-            return f"""Hi {user_name}! Mentorship is a great way to accelerate your career growth.
+            return f"""Hi {first_name}! Mentorship is a great way to accelerate your career growth.
 
 **Finding a Mentor:**
 • Look for senior professionals in {department}
@@ -181,7 +212,7 @@ What specific skills are you most interested in developing? I can provide person
 Would you like me to suggest potential mentors based on your career goals?"""
 
         elif any(word in message_lower for word in ['career', 'path', 'goal', 'next step']):
-            return f"""Hi {user_name}! Let's discuss your career path.
+            return f"""Hi {first_name}! Let's discuss your career path.
 
 **Your Current Position:** {job_title} in {department}
 
@@ -201,7 +232,7 @@ Would you like me to suggest potential mentors based on your career goals?"""
 What specific role interests you most? I can create a detailed development plan."""
 
         else:
-            return f"""Hi {user_name}! I'm here to help with your career development at PSA.
+            return f"""Hi {first_name}! I'm here to help with your career development at PSA.
 
 I can assist you with:
 • **Skill Development** - Recommend courses and learning paths
@@ -216,3 +247,5 @@ What would you like to work on today? Feel free to ask me about:
 - Finding mentors in your field
 
 How can I help you grow professionally?"""
+
+
