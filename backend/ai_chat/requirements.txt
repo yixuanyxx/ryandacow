@@ -4,3 +4,5 @@ python-dotenv
 supabase
 pyjwt
 python-dateutil
+numpy
+pandas

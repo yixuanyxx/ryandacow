@@ -1,0 +1,23 @@
+[
+    {
+      "id": 1,
+      "role": "Tech Lead",
+      "description": "Leads engineering teams and mentors developers.",
+      "required_skills": ["systems design", "team leadership", "project management"],
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 2,
+      "role": "Data Scientist",
+      "description": "Builds predictive models and derives insights from data.",
+      "required_skills": ["machine learning", "python", "data analysis"],
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 3,
+      "role": "Solutions Architect",
+      "description": "Designs and integrates scalable cloud solutions for enterprise systems.",
+      "required_skills": ["cloud architecture", "systems design", "stakeholder and partnership management"],
+      "vector": [0, 0, 0]
+    }
+  ]

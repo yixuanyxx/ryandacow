@@ -1,0 +1,26 @@
+[
+    {
+      "id": 201,
+      "name": "Victor Tan",
+      "job_title": "Principal Architect",
+      "skills": ["systems design", "cloud architecture", "leadership"],
+      "bio": "15 years of experience leading cloud architecture initiatives at PSA.",
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 202,
+      "name": "Grace Lim",
+      "job_title": "Senior Data Scientist",
+      "skills": ["python", "machine learning", "data visualization"],
+      "bio": "Helps analysts transition into data science roles through structured mentorship.",
+      "vector": [0, 0, 0]
+    },
+    {
+      "id": 203,
+      "name": "Jonathan Ong",
+      "job_title": "Engineering Manager",
+      "skills": ["team leadership", "project management", "communication"],
+      "bio": "Coaches engineers on leadership and team management best practices.",
+      "vector": [0, 0, 0]
+    }
+  ]
