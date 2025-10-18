@@ -1,188 +1,116 @@
-# PSA Workforce Compass - Microservices Backend Setup
+# PSA Workforce AI - MVP Backend
 
 ## Overview
-This backend is organized into microservices, each handling a specific domain of the PSA Workforce Compass system.
+Minimal backend for hackathon demo focusing on AI-powered career guidance.
 
-## Microservices Architecture
+## Architecture
+**3 Core Microservices:**
+- **Auth Service** (Port 5001) - User authentication
+- **AI Chat Service** (Port 5002) - Conversational AI
+- **Recommendations Service** (Port 5003) - AI recommendations
 
-### 1. **User Management** (Port 5001)
-- **Domain**: User authentication, profiles, personal information
-- **Tables**: users, user_personal_info, user_languages, employment_info, position_history, education
-- **Key Features**: Registration, login, profile management
+## Database
+**Simplified Schema:** `database/mvp_schema.sql`
+- Users (demo accounts)
+- Skills & User Skills
+- Courses & Career Pathways
+- AI Chat Sessions & Messages
 
-### 2. **Skills Management** (Port 5002)
-- **Domain**: Skills taxonomy, competencies, experience tracking
-- **Tables**: function_areas, specializations, skills, user_skills, competencies, user_competencies, experience_types, user_experiences, projects
-- **Key Features**: Skills matrix, competency tracking, experience management
+## Demo Accounts
+```json
+{ "email": "sarah@psa.com", "password": "demo123" }
+{ "email": "john@psa.com", "password": "demo123" }
+{ "email": "mike@psa.com", "password": "demo123" }
+```
 
-### 3. **Career Development** (Port 5003)
-- **Domain**: Career pathways, goal setting, recommendations
-- **Tables**: career_pathways, pathway_requirements, user_career_goals
-- **Key Features**: Career recommendations, goal tracking, skill gap analysis
-
-### 4. **AI Recommendation** (Port 5004)
-- **Domain**: AI-powered advice and chatbot
-- **Tables**: ai_chat_sessions, ai_chat_messages
-- **Key Features**: OpenAI integration, personalized advice, quick suggestions
-
-### 5. **Mentorship** (Port 5005)
-- **Domain**: Mentor-mentee matching and management
-- **Tables**: mentorship_requests
-- **Key Features**: Smart matching, request management
-
-### 6. **Training** (Port 5006)
-- **Domain**: Course management and progress tracking
-- **Tables**: courses, user_training
-- **Key Features**: Course catalog, enrollment, progress tracking
-
-### 7. **Analytics** (Port 5007)
-- **Domain**: Analytics, metrics, dashboard data
-- **Tables**: user_analytics, notifications
-- **Key Features**: Leadership scoring, engagement metrics, insights
-
-## Database Schema
-
-The comprehensive Supabase schema is located in `database/supabase_schema.sql` and includes:
-
-### Core Tables
-- **users** - User authentication and basic info
-- **user_personal_info** - Extended personal information
-- **user_languages** - Language proficiencies
-- **employment_info** - Job and department information
-- **position_history** - Career progression history
-- **education** - Educational background
-
-### Skills & Competencies
-- **function_areas** - Top-level skill categories (Info Tech: Infrastructure, Finance, etc.)
-- **specializations** - Mid-level categories (Cloud Computing: Cloud Architecture, etc.)
-- **skills** - Individual skills (Cloud Architecture, Python, etc.)
-- **user_skills** - User skill proficiencies with levels
-- **competencies** - Soft skills and competencies
-- **user_competencies** - User competency levels
-
-### Experience & Projects
-- **experience_types** - Types of experience (Program, Rotation, Exercise, etc.)
-- **user_experiences** - User's professional experiences
-- **projects** - Project participation and outcomes
-
-### Career Development
-- **career_pathways** - Defined career progression paths
-- **pathway_requirements** - Skills required for each pathway
-- **user_career_goals** - User's career objectives
-
-### Training & Learning
-- **courses** - Available training courses
-- **user_training** - User enrollment and progress
-
-### Mentorship
-- **mentorship_requests** - Mentor-mentee relationships
-
-### AI & Analytics
-- **ai_chat_sessions** - AI conversation sessions
-- **ai_chat_messages** - Individual chat messages
-- **user_analytics** - User metrics and analytics
-- **notifications** - System notifications
-
-## Setup Instructions
+## Quick Start
 
 ### 1. Database Setup
 ```bash
-# Create Supabase project at https://supabase.com
-# Run the schema file in Supabase SQL editor
-cat database/supabase_schema.sql
+# Create Supabase project
+# Run database/mvp_schema.sql in Supabase SQL editor
 ```
 
-### 2. Environment Configuration
-Create `.env` file in each microservice:
+### 2. Environment Setup
+Create `.env` in each microservice:
 ```env
-# Supabase Configuration
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_KEY=your_supabase_service_role_key
-
-# OpenAI Configuration (for AI microservice)
-OPENAI_API_KEY=your_openai_api_key
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key_change_in_production
-
-# CORS Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_supabase_key
+JWT_SECRET=your_jwt_secret
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-
-# Flask Configuration
-FLASK_ENV=development
-FLASK_DEBUG=True
 ```
 
 ### 3. Install Dependencies
 ```bash
-# Install shared dependencies
-pip install flask flask-cors python-dotenv supabase pyjwt openai requests
-
-# Or create requirements.txt in each microservice
+cd user-management && pip install -r requirements.txt
+cd ../ai-chat && pip install -r requirements.txt
+cd ../recommendations && pip install -r requirements.txt
 ```
 
-### 4. Run Microservices
+### 4. Run Services
 ```bash
-# Terminal 1 - User Management
+# Terminal 1
 cd user-management && python app.py
 
-# Terminal 2 - Skills Management
-cd skills-management && python app.py
+# Terminal 2  
+cd ai-chat && python app.py
 
-# Terminal 3 - Career Development
-cd career-development && python app.py
-
-# Terminal 4 - AI Recommendation
-cd ai-recommendation && python app.py
-
-# Terminal 5 - Mentorship
-cd mentorship && python app.py
-
-# Terminal 6 - Training
-cd training && python app.py
-
-# Terminal 7 - Analytics
-cd analytics && python app.py
+# Terminal 3
+cd recommendations && python app.py
 ```
 
-## API Gateway (Optional)
+## API Endpoints
 
-For production, consider using an API gateway like Kong or Nginx to route requests to the appropriate microservice.
+### Auth Service (5001)
+- `POST /auth/login` - Login with demo accounts
+- `GET /auth/profile` - Get user profile
 
-## Data Flow
+### AI Chat Service (5002)
+- `POST /chat/message` - Send message to AI
+- `GET /chat/history` - Get chat history
+- `POST /chat/clear` - Clear chat history
 
-1. **User Registration/Login** → User Management (5001)
-2. **Profile Updates** → User Management (5001)
-3. **Skills Management** → Skills Management (5002)
-4. **Career Planning** → Career Development (5003)
-5. **AI Chat** → AI Recommendation (5004)
-6. **Mentorship** → Mentorship (5005)
-7. **Training** → Training (5006)
-8. **Analytics** → Analytics (5007)
+### Recommendations Service (5003)
+- `GET /recommendations/{user_id}` - Get dashboard recommendations
+- `GET /recommendations/courses/{user_id}` - Get course recommendations
+- `GET /recommendations/mentors/{user_id}` - Get mentor recommendations
 
-## Sample Data
+## Features
 
-The schema includes sample data for:
-- Function areas and specializations
-- Skills taxonomy
-- Competencies
-- Experience types
-- Career pathways
-- Sample courses
+### ✅ MVP Features
+- **Simple Authentication** - Demo accounts only
+- **AI Chatbot** - Predefined responses based on user context
+- **Smart Recommendations** - Course, mentor, career suggestions
+- **User Context** - Skills and profile-based personalization
+
+### ❌ Not Included (for MVP)
+- User registration
+- Profile editing
+- Real OpenAI integration
+- Complex analytics
+- Advanced matching algorithms
+- File uploads
+- Notifications
+
+## Frontend Integration
+
+The backend is designed to work with the minimal Vue.js frontend:
+- **Login Page** → Auth Service
+- **Dashboard** → Recommendations Service  
+- **Chat Page** → AI Chat Service
+
+## Demo Flow
+
+1. **Login** → `POST /auth/login` with demo credentials
+2. **Dashboard** → `GET /recommendations/{user_id}` for AI suggestions
+3. **Chat** → `POST /chat/message` for AI career advice
+4. **Personalized Responses** → AI considers user skills and goals
 
 ## Development Notes
 
-- Each microservice is independent and can be developed/deployed separately
-- Shared components are in the `shared/` directory
-- Database connections use Supabase client
-- Authentication uses JWT tokens
-- CORS is configured for frontend integration
+- **Mock AI Responses** - Predefined responses for demo
+- **Simple Matching** - Basic algorithms for recommendations
+- **Demo Data** - Pre-loaded users, skills, courses
+- **No Real OpenAI** - Uses rule-based responses for hackathon
 
-## Production Considerations
-
-- Use environment-specific configurations
-- Implement proper logging and monitoring
-- Add rate limiting and security measures
-- Consider database connection pooling
-- Implement health checks for each microservice
-- Use containerization (Docker) for deployment
+Perfect for hackathon demo! 🚀

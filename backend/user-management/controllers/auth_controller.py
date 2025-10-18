@@ -6,25 +6,12 @@ sys.path.append('..')
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 # Import service from services directory
-from services.user_service import UserService
-service = UserService()
-
-@auth_bp.route("/register", methods=["POST"])
-def register():
-    """Register a new user"""
-    try:
-        data = request.get_json(silent=True) or {}
-        result = service.register_user(data)
-        status_code = result.pop("Code", 201)
-        return jsonify(result), status_code
-    except ValueError as e:
-        return jsonify({"Code": 400, "Message": str(e)}), 400
-    except Exception as e:
-        return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
+from services.auth_service import AuthService
+service = AuthService()
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """Login user"""
+    """Login user - MVP version with demo accounts"""
     try:
         data = request.get_json(silent=True) or {}
         email = data.get('email')
@@ -42,21 +29,9 @@ def login():
 @auth_bp.route("/profile", methods=["GET"])
 @require_auth
 def get_profile():
-    """Get user profile"""
+    """Get user profile for dashboard"""
     try:
         result = service.get_user_profile(request.user_id)
-        status_code = result.pop("Code", 200)
-        return jsonify(result), status_code
-    except Exception as e:
-        return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
-
-@auth_bp.route("/profile", methods=["PUT"])
-@require_auth
-def update_profile():
-    """Update user profile"""
-    try:
-        data = request.get_json(silent=True) or {}
-        result = service.update_profile(request.user_id, data)
         status_code = result.pop("Code", 200)
         return jsonify(result), status_code
     except Exception as e:

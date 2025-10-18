@@ -40,10 +40,7 @@ class UserRepo:
 
     def get_users_by_department(self, department: str) -> List[Dict[str, Any]]:
         """Get all users in a department"""
-        res = self.db.table("users").select(`
-            *,
-            employment_info!inner(department)
-        `).eq("employment_info.department", department).execute()
+        res = self.db.table("users").select("*, employment_info!inner(department)").eq("employment_info.department", department).execute()
         return res.data or []
 
 class UserPersonalInfoRepo:
