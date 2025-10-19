@@ -2,8 +2,8 @@
 
 import numpy as np
 from typing import Dict, List
-from embeddings import embed_text, cosine
-from skill_normalizer import normalize_list
+from backend.shared.embeddings import embed_text, cosine
+from backend.shared.skill_normalizer import normalize_list
 
 # --- Helper to convert lists to numpy arrays ---
 def _as_np(v): 
@@ -13,36 +13,35 @@ def _as_np(v):
 # =====================================================
 # 1️⃣ ROLE RECOMMENDATION
 # =====================================================
-def role_recommendations(employee: Dict, role_index: List[Dict], top_k: int = 5) -> List[Dict]:
+def role_recommendations(employee: dict, roles: list, top_k: int = 5) -> list:
     """
-    Compute the top K roles that best fit the employee.
-    Combines embedding similarity + skill gap ratio + title alignment.
+    Always return top_k best matches (no hard min threshold).
+    Include the final score so upstream can sort or display.
     """
-    e_vec = _as_np(employee["vector"])
-    e_skills = set(normalize_list(employee.get("skills", [])))
+    from backend.shared.embeddings import embed_text, cosine
+
+    # build query text from richer signals
+    q = " ".join([
+        employee.get("job_title",""),
+        " ".join(employee.get("top_skills", [])[:8]),
+        " ".join([p.get("title","") for p in employee.get("projects", [])[:3]])
+    ]).strip() or employee.get("job_title","")
+    qv = embed_text(q)
 
     scored = []
-    for r in role_index:
-        r_vec = _as_np(r["vector"])
-        sim = cosine(e_vec, r_vec)
+    for r in roles:
+        # concat role text
+        rtxt = " ".join(filter(None, [
+            r.get("role",""),
+            " ".join(r.get("skills", [])[:10]),
+            r.get("summary","")
+        ]))
+        rv = r.get("vector") or embed_text(rtxt)  # if you stored vectors, use them; else embed on the fly
+        s = cosine(qv, rv)
+        scored.append({"role_id": r["id"], "role": r.get("role",""), "score": float(s)})
 
-        req_skills = set(normalize_list(r.get("required_skills", [])))
-        missing = [s for s in req_skills if s not in e_skills]
-        gap_ratio = len(missing) / max(1, len(req_skills))
-
-        # Bonus: measure how similar the employee’s job title is to the target role
-        title_sim = cosine(embed_text(employee["job_title"]), embed_text(r["role"]))
-
-        score = 0.6 * sim + 0.3 * (1 - gap_ratio) + 0.1 * title_sim
-        scored.append({
-            "role_id": r["id"],
-            "role": r["role"],
-            "score": round(100 * score, 1),
-            "missing_skills": missing,
-        })
-
-    # Sort descending by composite score
-    return sorted(scored, key=lambda x: x["score"], reverse=True)[:top_k]
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
 
 
 # =====================================================

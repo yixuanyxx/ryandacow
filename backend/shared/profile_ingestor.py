@@ -1,7 +1,7 @@
 import json, os, hashlib
 from typing import Dict, List, Optional
 from datetime import datetime
-from embeddings import embed_text
+from backend.shared.embeddings import embed_text
 
 class ProfileIngestor:
     """
@@ -63,7 +63,7 @@ class ProfileIngestor:
                 vec = cached["vector"]
             else:
                 blob = self._build_blob(e)
-                vec = embed_text(blob).tolist()
+                vec = embed_text(blob)
                 self.cache[employee_id] = {
                     "hash": profile_hash,
                     "vector": vec,

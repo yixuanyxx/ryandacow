@@ -1,12 +1,12 @@
 from typing import List, Dict, Optional
 import json, os
 import pandas as pd
-from embeddings import embed_text
-from skill_normalizer import normalize_list, normalize_skill
+from backend.shared.embeddings import embed_text
+from backend.shared.skill_normalizer import normalize_list, normalize_skill
 
 def _embed_field_join(parts: List[str]) -> list[float]:
     text = " | ".join([p for p in parts if p])
-    return embed_text(text).tolist()
+    return embed_text(text)
 
 def build_roles_from_excel(xlsx_path: str, sheet: Optional[str] = None) -> List[Dict]:
     """
