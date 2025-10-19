@@ -1,45 +1,58 @@
-import sys
-sys.path.append('..')
-from shared.database import get_db_connection
-from typing import Optional, Dict, Any, List
+from backend.shared.database import get_db_connection
+from datetime import datetime, UTC
 
 class ChatRepo:
     def __init__(self):
         self.db = get_db_connection()
+        self.demo_store = {"sessions": {}, "messages": []}
 
-    def create_session(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new chat session"""
-        res = self.db.table("ai_chat_sessions").insert(data).execute()
-        if not res.data:
-            raise RuntimeError("Chat session creation failed")
-        return res.data[0]
-
-    def get_user_session(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """Get user's active chat session"""
-        res = self.db.table("ai_chat_sessions").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).execute()
+    def get_user_session(self, user_id: int):
+        if not self.db.ready():
+            return self.demo_store["sessions"].get(user_id)
+        # 🔵 Real DB version
+        res = self.db.client.table("ai_chat_sessions").select("*").eq("user_id", user_id).execute()
         return res.data[0] if res.data else None
 
-    def create_message(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a chat message"""
-        res = self.db.table("ai_chat_messages").insert(data).execute()
-        if not res.data:
-            raise RuntimeError("Message creation failed")
+    def create_session(self, payload: dict):
+        if not self.db.ready():
+            sid = payload["user_id"]
+            self.demo_store["sessions"][sid] = {"id": sid, **payload}
+            return self.demo_store["sessions"][sid]
+        res = self.db.client.table("ai_chat_sessions").insert(payload).execute()
         return res.data[0]
 
-    def get_session_messages(self, session_id: int) -> List[Dict[str, Any]]:
-        """Get all messages for a session"""
-        res = self.db.table("ai_chat_messages").select("*").eq("session_id", session_id).order("created_at").execute()
-        return res.data or []
+    def create_message(self, payload: dict):
+        if not self.db.ready():
+            self.demo_store["messages"].append(payload)
+            return payload
+        self.db.client.table("ai_chat_messages").insert(payload).execute()
+        return payload
 
-    def get_user_skills(self, user_id: int) -> List[Dict[str, Any]]:
-        """Get user's skills for AI context"""
-        res = self.db.table("user_skills").select("""
-            *,
-            skills(*)
-        """).eq("user_id", user_id).execute()
-        return res.data or []
+    def get_session_messages_for_context(self, user_id, limit=6):
+        session = self.get_user_session(user_id)
+        if not session:
+            return []
+        msgs = self.db.table("ai_chat_messages") \
+            .select("role,content") \
+            .eq("session_id", session["id"]) \
+            .order("created_at.desc") \
+            .limit(limit) \
+            .execute()
+        return list(reversed(msgs.data or []))
 
-    def get_user_profile(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """Get user profile for AI context"""
-        res = self.db.table("users").select("*").eq("id", user_id).single().execute()
-        return res.data
+    def get_user_profile(self, user_id: int):
+        if not self.db.ready():
+            return {
+                "id": user_id,
+                "first_name": "Demo",
+                "job_title": "Engineer",
+                "department": "IT",
+            }
+        res = self.db.client.table("users").select("*").eq("id", user_id).execute()
+        return res.data[0] if res.data else None
+
+    def get_user_skills(self, user_id: int):
+        if not self.db.ready():
+            return [{"skills": {"name": "Python"}}, {"skills": {"name": "System Design"}}]
+        res = self.db.client.table("user_skills").select("*").eq("user_id", user_id).execute()
+        return res.data or []

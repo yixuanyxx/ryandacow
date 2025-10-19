@@ -1,23 +1,24 @@
 // services/chatService.js
-import api from './api.js'
+import api from './api.js';
 
 export const chatService = {
-  async sendMessage(message, userId) {
+  async sendMessage(message, userId = 1) {
     try {
-      const response = await api.post('/api/chat/message', {
-        message,
-        user_id: userId
-      })
-      
-      return {
-        success: true,
-        response: response.data.data.response
-      }
+      const res = await api.post("/chat/guidance", { user_id: userId, message });
+      const data = res.data?.data || {};
+      return { success: true, responseText: data.reply || data.summary || "", payload: data };
     } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.Message || 'Failed to send message'
-      }
+      // Friendlier frontend error for timeouts
+      const isTimeout = error.code === "ECONNABORTED" || /timeout/i.test(error.message || "");
+      const msg = isTimeout
+        ? "The AI took too long to respond. I’ll try to be snappier next time."
+        : (error?.response?.data?.Message || "Failed to send message");
+      return { success: false, error: msg };
     }
-  }
-}
+  },
+
+  async getHealth() {
+    const res = await api.get('/chat/health');
+    return res.data;
+  },
+};

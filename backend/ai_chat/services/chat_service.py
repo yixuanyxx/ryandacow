@@ -2,11 +2,13 @@ import sys
 sys.path.append('..')
 sys.path.append('../shared')
 sys.path.append('../recommendations')
-from repo.chat_repo import ChatRepo
 from typing import Dict, Any, Optional
 from datetime import datetime, UTC
 import os
-from orchestrator.orchestrator import run_full_plan
+import traceback
+from backend.ai_chat.repo.chat_repo import ChatRepo
+from backend.ai_chat.orchestrator.orchestrator import run_full_plan
+from backend.ai_chat.llm_client import summarize, llm_reply
 
 class ChatService:
     def __init__(self, chat_repo: Optional[ChatRepo] = None):
@@ -101,165 +103,121 @@ class ChatService:
 
     def generate_career_guidance(self, user_id: int, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            # For MVP, return a simple mock response instead of full AI pipeline
+            # 1) Core plan
+            result       = run_full_plan(user_id)
+            plan         = result.get("plan") or {}
+            leadership   = result.get("leadership") or {}
+            summary      = result.get("summary") or "Here’s a personalized plan."
+            alternatives = result.get("alternatives") or []
+
+            # 2) Feedback scaffold
+            missing     = plan.get("missing_skills") or []
+            top_courses = plan.get("recommended_courses") or []
+            top_mentors = plan.get("recommended_mentors") or []
+            strengths   = plan.get("skills") or []
+
+            growth_areas = [m.get("skill", "Skill gap") for m in missing[:3]]
+            rec_actions  = []
+            if top_courses: rec_actions.append(f"Start {top_courses[0].get('title','a recommended course')}")
+            if top_mentors: rec_actions.append(f"Schedule a mentor chat with {top_mentors[0].get('name','a recommended mentor')}")
+            rec_actions.append("Set two measurable goals for the next 30 days")
+
+            lead_level = leadership.get("level", "Developing")
+            lead_score = leadership.get("score", 50)
+            dev_plan   = leadership.get("development_plan") or []
+            lead_focus = ", ".join(d.get("skill","a focus area") for d in dev_plan[:2]) or "core leadership behaviors"
+
+            feedback = {
+                "strengths": strengths[:3],
+                "growth_areas": growth_areas,
+                "recommended_actions": rec_actions,
+                "leadership_feedback": {
+                    "level": lead_level,
+                    "score": lead_score,
+                    "comment": f"Focus on {lead_focus} to progress from '{lead_level}'."
+                }
+            }
+
+            # 3) Short convo history (best-effort)
+            try:
+                get_ctx = getattr(self.chat_repo, "get_session_messages_for_context", None)
+                if callable(get_ctx):
+                    msgs = get_ctx(user_id, limit=6)
+                else:
+                    sess = self.chat_repo.get_user_session(user_id)
+                    msgs = self.chat_repo.get_session_messages(sess['id'])[-6:] if sess else []
+            except Exception:
+                msgs = []
+            history_lines = [f"{m['role']}: {m['content']}" for m in msgs]
+
+            # 4) Conversational reply (fallback to summary on error)
+            try:
+                reply_md = llm_reply(plan, leadership, message, history_lines) or summary
+            except Exception:
+                reply_md = summary
+
+            # 5) Tiny extras for the right panel
+            plan["top_gaps"] = [m.get("skill") for m in (plan.get("missing_skills") or [])][:3]
+            plan["kpis"] = {
+                "fit_score": plan.get("fit_score", 0),
+                "primary_gap_pct": (plan.get("missing_skills", [{"gap_score": 0}])[0].get("gap_score", 0)),
+                "courses_count": len(top_courses),
+            }
+            next_questions = [
+                "Give me a 2-week micro-plan for the top gap",
+                "Draft a DM to request a 1:1 with the suggested mentor",
+                "Suggest an internal project to apply these skills",
+            ]
+            grounding = {
+                "course_ids": [c.get("id") for c in top_courses],
+                "mentor_ids": [m.get("id") for m in top_mentors],
+                "target_role": plan.get("target_role"),
+            }
+
+            # 6) Return unified payload (what the frontend expects)
             return {
                 "Code": 200,
                 "Message": "AI guidance generated",
                 "data": {
-                    "summary": "Based on your profile, I recommend focusing on leadership skills and technical depth to advance your career.",
-                    "plan": {
-                        "target_role": "Senior Software Engineer",
-                        "fit_score": 85.0,
-                        "skill_gaps": ["Team Leadership", "System Design"],
-                        "courses": [
-                            {"title": "Leadership Fundamentals", "duration": 24},
-                            {"title": "System Design Masterclass", "duration": 32}
-                        ],
-                        "mentors": [
-                            {"name": "John Smith", "role": "Senior Tech Lead", "experience": 8}
-                        ]
-                    },
-                    "leadership": {
-                        "score": 65.0,
-                        "level": "Developing",
-                        "rationale": "Good technical skills, needs leadership development"
-                    },
-                    "alternatives": [
-                        {"role": "Tech Lead", "fit_score": 78.0},
-                        {"role": "Engineering Manager", "fit_score": 72.0}
-                    ]
-                }
+                    "reply": reply_md,          # ← show this in chat bubble
+                    "summary": summary,         # ← still available for cards
+                    "plan": plan,
+                    "leadership": leadership,
+                    "alternatives": alternatives,
+                    "feedback": {**feedback, "next_questions": next_questions},
+                    "grounding": grounding,
+                },
             }
+
         except Exception as e:
-            return {"Code": 500, "Message": f"Internal error: {str(e)}"}
+            traceback.print_exc()
+            return {"Code": 500, "Message": f"Guidance pipeline error: {e}"}
 
     def _generate_ai_response(self, user_id: int, message: str, context: Dict[str, Any]) -> str:
-        """Generate AI response - MVP version with predefined responses"""
-        
-        # Get user context
-        user_profile = context.get('user_profile', {}) or {}
-        user_skills = context.get('user_skills', []) or []
-
-        # Prefer single 'name'; derive first_name if present
-        full_name = user_profile.get('name') or f"{user_profile.get('first_name','').strip()} {user_profile.get('last_name','').strip()}".strip()
-        first_name = (full_name or "there").split(" ", 1)[0]
-        job_title = user_profile.get('job_title', 'employee')
-        department = user_profile.get('department', 'your department')
-        
-        # Extract skills for context
-        skill_names = []
-        for s in user_skills:
-            if isinstance(s, dict):
-                if "name" in s and s.get("name"):
-                    skill_names.append(s["name"])
-                elif "skills" in s and isinstance(s["skills"], dict) and s["skills"].get("name"):
-                    skill_names.append(s["skills"]["name"])
-        
-        # Predefined responses based on common questions
-        message_lower = message.lower()
-        
-        if any(word in message_lower for word in ['skill', 'skills', 'learn', 'develop']):
-            if 'tech lead' in message_lower or 'lead' in message_lower:
-                return f"""Hi {first_name}! Based on your profile as a {job_title} in {department}, here are the key skills you need to become a Tech Lead:
-
-**High Priority Skills:**
-• Team Leadership - Lead and mentor development teams
-• System Architecture - Design scalable system architectures  
-• Agile Coaching - Guide teams in agile methodologies
-
-**Medium Priority Skills:**
-• Project Management - Plan and execute technical projects
-• Communication - Present technical concepts to stakeholders
-
-I recommend starting with our "Leadership Fundamentals" course to build your team leadership skills. Would you like me to suggest specific training courses for any of these areas?"""
-
-            elif 'course' in message_lower or 'training' in message_lower:
-                return f"""Great question, {first_name}! Based on your current skills in {', '.join(skill_names[:3]) if skill_names else 'your field'}, I recommend these courses:
-
-**For your career growth:**
-• Advanced Python for Leaders (40 hours) - Builds on your Python skills
-• System Design Masterclass (32 hours) - Essential for senior roles
-• Leadership Fundamentals (24 hours) - Develops management skills
-
-**Next Steps:**
-1. Start with Leadership Fundamentals to build soft skills
-2. Take System Design Masterclass for technical depth
-3. Consider Advanced Python for Leaders for specialization
-
-Would you like more details about any of these courses?"""
-
+        # 1) gather short convo snippet (kept — with the safety block from B)
+        try:
+            get_ctx = getattr(self.chat_repo, "get_session_messages_for_context", None)
+            if callable(get_ctx):
+                messages = get_ctx(user_id, limit=6)
             else:
-                return f"""Hi {first_name}! I'd be happy to help you with skill development. 
+                sess = self.chat_repo.get_user_session(user_id)
+                messages = self.chat_repo.get_session_messages(sess['id'])[-6:] if sess else []
+        except Exception:
+            messages = []
 
-Based on your role as a {job_title}, here are some areas to focus on:
+        conversation_snippet = "\n".join(f"{m['role'].capitalize()}: {m['content']}" for m in messages)
 
-**Technical Skills:**
-• Advanced programming languages
-• System design and architecture
-• Cloud computing platforms
+        # 2) run your orchestrator (deterministic plan + leadership)
+        result = run_full_plan(user_id)
 
-**Leadership Skills:**
-• Team management
-• Project planning
-• Communication and presentation
+        # 3) tone prompt (optional context for future upgrades)
+        user_profile = context.get("user_profile", {})
+        persona = user_profile.get("job_title", "professional")
+        _ = (
+            f"You are PORTalGPT, PSA's internal career mentor.\n"
+            f"User role: {persona}\n"
+            f"Recent conversation:\n{conversation_snippet}\n"
+        )
 
-What specific skills are you most interested in developing? I can provide personalized recommendations based on your career goals."""
-
-        elif any(word in message_lower for word in ['mentor', 'mentorship', 'advice', 'guidance']):
-            return f"""Hi {first_name}! Mentorship is a great way to accelerate your career growth.
-
-**Finding a Mentor:**
-• Look for senior professionals in {department}
-• Seek someone with 5+ years more experience than you
-• Consider both technical and leadership mentors
-
-**What to Look For:**
-• Experience in roles you aspire to
-• Strong communication skills
-• Willingness to share knowledge
-
-**How to Approach:**
-• Be specific about what you want to learn
-• Show genuine interest in their expertise
-• Offer to help with their projects too
-
-Would you like me to suggest potential mentors based on your career goals?"""
-
-        elif any(word in message_lower for word in ['career', 'path', 'goal', 'next step']):
-            return f"""Hi {first_name}! Let's discuss your career path.
-
-**Your Current Position:** {job_title} in {department}
-
-**Potential Next Steps:**
-• Senior {job_title} - Deepen technical expertise
-• Tech Lead - Lead technical teams
-• Engineering Manager - Manage teams and projects
-
-**Recommended Path:** Based on your skills, I suggest aiming for Tech Lead in 2-3 years.
-
-**Action Plan:**
-1. Develop leadership skills through courses
-2. Take on mentoring opportunities
-3. Lead technical projects
-4. Build system design expertise
-
-What specific role interests you most? I can create a detailed development plan."""
-
-        else:
-            return f"""Hi {first_name}! I'm here to help with your career development at PSA.
-
-I can assist you with:
-• **Skill Development** - Recommend courses and learning paths
-• **Career Planning** - Help you set and achieve career goals  
-• **Mentorship** - Connect you with potential mentors
-• **Training** - Suggest relevant courses and certifications
-
-What would you like to work on today? Feel free to ask me about:
-- Skills you need for your next role
-- Training courses that match your goals
-- Career advancement strategies
-- Finding mentors in your field
-
-How can I help you grow professionally?"""
-
-
+        # 4) ✅ robust summary (uses OpenAI if configured, else mock)
+        return summarize(result["plan"], result["leadership"])
