@@ -2,12 +2,14 @@
 import axios from 'axios'
 
 // Create axios instance with base configuration
+const BASE = import.meta.env.VITE_AI_BASE || "http://localhost:5002";
+console.log("[API Base URL]", BASE);
+
 const api = axios.create({
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
+  baseURL: BASE, // 👈 ensures calls go to port 5002
+  withCredentials: false,
+  timeout: 60000,
+});
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

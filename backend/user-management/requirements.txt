@@ -6,3 +6,5 @@ pyjwt
 python-dateutil
 bcrypt
 requests
+numpy
+pandas
