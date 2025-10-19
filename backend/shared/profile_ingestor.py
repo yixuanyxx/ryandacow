@@ -63,7 +63,7 @@ class ProfileIngestor:
                 vec = cached["vector"]
             else:
                 blob = self._build_blob(e)
-                vec = embed_text(blob).tolist()
+                vec = embed_text(blob)
                 self.cache[employee_id] = {
                     "hash": profile_hash,
                     "vector": vec,

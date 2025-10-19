@@ -1,7 +1,9 @@
-import os, json
-from typing import List, Dict
+# backend/ai_chat/llm_client.py
+from dotenv import load_dotenv; load_dotenv()
 
-HAVE_OPENAI = bool(os.getenv("OPENAI_API_KEY"))
+import os, json
+from typing import Dict
+from backend.shared.llm_clients import get_apim_client_for
 
 SYSTEM_PROMPT = (
     "You are PORTalGPT, PSA's internal career co-pilot. "
@@ -9,8 +11,11 @@ SYSTEM_PROMPT = (
     "If a tool result is provided, ground your answer in it and avoid inventing numbers."
 )
 
+# Use the APIM deployment for chat (gpt-5-mini by default)
+CHAT_DEPLOY = os.getenv("AZURE_DEPLOY_GPT5_MINI", "gpt-5-mini")
+
 def summarize_plan_with_mock(plan: Dict, leadership: Dict) -> str:
-    # Deterministic, safe fallback when no OpenAI key is available.
+    # Deterministic, safe fallback when LLM is unreachable
     lines = []
     lines.append(f"Target role: {plan['target_role']} (fit {plan['fit_score']}%).")
     if plan.get("missing_skills"):
@@ -27,29 +32,23 @@ def summarize_plan_with_mock(plan: Dict, leadership: Dict) -> str:
     lines.append("Next 30/60/90 days: follow milestones in your plan.")
     return " ".join(lines)
 
-def summarize_plan_with_llm(plan: Dict, leadership: Dict) -> str:
-    # Late switch: wire OpenAI here when your key is ready.
-    # Keep the shape the same so the rest of the app does not change.
-    from openai import OpenAI
-    client = OpenAI()
-    content = json.dumps({"plan": plan, "leadership": leadership}, ensure_ascii=False)
-    resp = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        temperature=0.3,
-        messages=[
-            {"role":"system","content":SYSTEM_PROMPT},
-            {"role":"user","content":"Summarize this structured plan for the employee in 6-8 bullet points with clear actions and reasons. Keep numbers as-is."},
-            {"role":"user","content":content}
-        ],
-    )
-    return resp.choices[0].message.content
-
 def summarize(plan: Dict, leadership: Dict) -> str:
-    if HAVE_OPENAI:
-        try:
-            return summarize_plan_with_llm(plan, leadership)
-        except Exception:
-            # Hard fallback if API hiccups
-            return summarize_plan_with_mock(plan, leadership)
-    else:
+    """
+    Preferred path: use APIM (deployment-scoped base URL + `api-key` header).
+    Falls back to a deterministic mock if the gateway errors.
+    """
+    content = json.dumps({"plan": plan, "leadership": leadership}, ensure_ascii=False)
+    try:
+        client = get_apim_client_for(CHAT_DEPLOY)
+        resp = client.chat.completions.create(
+            model=CHAT_DEPLOY,          # APIM expects deployment name here
+            temperature=0.3,
+            messages=[
+                {"role":"system","content":SYSTEM_PROMPT},
+                {"role":"user","content":"Summarize this structured plan in 6–8 crisp bullets with clear actions and reasons. Keep numbers as-is."},
+                {"role":"user","content":content}
+            ],
+        )
+        return resp.choices[0].message.content
+    except Exception:
         return summarize_plan_with_mock(plan, leadership)
