@@ -5,10 +5,17 @@ import os, json
 from typing import Dict, List
 from backend.shared.llm_clients import get_apim_client_for
 
+# System prompts
 SYSTEM_PROMPT = (
     "You are PORTalGPT, PSA's internal career co-pilot. "
     "Be concise, supportive, and specific. Prefer tool data over assumptions. "
     "If tool results are provided (plan, leadership, feedback), ground answers in them and avoid inventing numbers."
+)
+SYSTEM_COACH = (
+    "You are PORTalGPT, PSA's internal career co-pilot. "
+    "Default to a natural, conversational tone in 1–2 short paragraphs, with concrete, time-bound actions. "
+    "Switch to concise bullets (<= 8) ONLY when the user explicitly asks for list/steps/roadmap/bullets. "
+    "Always ground guidance in the provided plan and leadership signals; do not invent IDs or numbers."
 )
 
 MD_INSTRUCTIONS = (
@@ -90,70 +97,96 @@ def summarize(plan: Dict, leadership: Dict) -> str:
 
 # ---------- chat reply (for conversational UX) ----------
 def _mock_reply(plan: Dict, leadership: Dict, user_message: str, history: str) -> str:
-    # Varies by user_message so it doesn’t look identical
+    # Simple deterministic fallback if APIM is unavailable
     role = plan.get("target_role", "a suitable next role")
     fit = plan.get("fit_score", 50)
     lead = leadership.get("level", "Developing")
     lower = (user_message or "").lower()
-    if "mentor" in lower:
-        return (
-            f"Good idea. For your target {role} (fit {fit:.1f}%) and leadership level {lead}, "
-            "book one mentor chat this week. I can suggest a mentor and a 3-question agenda if you’d like."
-        )
-    if "course" in lower or "learn" in lower:
-        c1 = (plan.get("recommended_courses") or [{}])[0].get("title", "the top recommended course")
-        return (
-            f"For your target {role} (fit {fit:.1f}%), start with {c1}. "
-            "Apply it in a small project within 2–3 weeks, then share results with your manager."
-        )
-    if "skills" in lower or "gap" in lower:
+    if any(k in lower for k in ["list", "bullet", "steps", "roadmap"]):
+        bullets = []
         gaps = plan.get("missing_skills") or []
-        top = ", ".join(g.get("skill", "a gap") for g in gaps[:2]) or "your top gap areas"
-        return (
-            f"Top skill gaps: {top}. Focus the next 30 days on closing one gap. "
-            "I can break this into weekly actions if you say 'weekly plan'."
-        )
+        if gaps:
+            bullets.append(f"Close top gap: {gaps[0].get('skill','a key skill')} in 30 days")
+        course = (plan.get("recommended_courses") or [{}])[0].get("title")
+        if course:
+            bullets.append(f"Enroll: {course} this week")
+        mentor = (plan.get("recommended_mentors") or [{}])[0].get("name")
+        if mentor:
+            bullets.append(f"Book mentor chat with {mentor} next week")
+        bullets.append("Share progress update with manager in 4 weeks")
+        return "\n".join(f"- {b}" for b in bullets[:8])
+    # paragraphs
     return (
-        f"For your target {role} (fit {fit:.1f}%) and leadership level {lead}, "
-        "focus on the first milestone this month. Want me to break it into weekly actions?"
+        f"You're tracking toward {role} (fit {fit}%). With leadership at {lead}, "
+        "focus on one high-impact skill this month and apply it in a small project. "
+        "Book one mentor conversation and schedule a progress check-in with your manager in 4 weeks."
     )
 
 def llm_reply(plan: Dict, leadership: Dict, user_message: str, history_lines: List[str]) -> str:
-    """Return a Markdown conversation reply grounded in plan+leadership."""
-    content = json.dumps({"plan": plan, "leadership": leadership}, ensure_ascii=False)
+    """Return a Markdown conversation reply grounded in plan+leadership.
+
+    Style: default 1–2 short paragraphs; switch to bullets if the user asks.
+    Uses APIM deployment without temperature.
+    """
     history_text = "\n".join(history_lines[-6:]) if history_lines else ""
-    system = (
-        "You are PORTalGPT, PSA's internal career co-pilot. "
-        "Be supportive, specific, and grounded in the provided plan JSON. "
-        "Do not invent IDs, numbers, or entities."
-    )
-    user = (
-        f"User message:\n{user_message}\n\n"
-        f"Recent conversation (if any):\n{history_text}\n\n"
-        f"Structured plan JSON:\n{content}\n\n{MD_INSTRUCTIONS}"
-    )
+
+    # Derive highlights defensively
+    target_role = plan.get("target_role")
+    fit_score = plan.get("fit_score")
+    gaps = plan.get("missing_skills") or []
+    top_gap = (gaps[0].get("skill") if gaps else None)
+    courses = plan.get("recommended_courses") or []
+    course_title = (courses[0].get("title") if courses else None)
+    mentors = plan.get("recommended_mentors") or []
+    mentor_name = (mentors[0].get("name") if mentors else None)
+    milestones = plan.get("milestones") or []
+    milestone_focus = (milestones[0].get("focus") if milestones else None)
+    lead_level = leadership.get("level") if isinstance(leadership, dict) else None
+    lead_score = leadership.get("score") if isinstance(leadership, dict) else None
+
+    tool_ctx = {
+        "plan": plan,
+        "leadership": leadership,
+        "highlights": {
+            "target_role": target_role,
+            "fit_score": fit_score,
+            "top_gap": top_gap,
+            "course_title": course_title,
+            "mentor_name": mentor_name,
+            "milestone_focus": milestone_focus,
+            "lead_level": lead_level,
+            "lead_score": lead_score,
+        },
+        "history": history_text,
+        "user_query": user_message,
+    }
+
+    lower = (user_message or "").lower()
+    wants_bullets = any(k in lower for k in ["list", "bullet", "steps", "roadmap"])  # style hint
+
+    # Compose instructions
+    if wants_bullets:
+        style = (
+            "Return concise bullets (<= 8). Each bullet should be actionable and time-bound. "
+            "Keep numbers from the plan; do not invent new ones."
+        )
+    else:
+        style = (
+            "Return 1–2 short paragraphs (no lists). Keep a friendly, concise tone with concrete, time-bound actions. "
+            "Keep numbers from the plan; do not invent new ones."
+        )
+
     try:
         client = get_apim_client_for(CHAT_DEPLOY)
         resp = client.chat.completions.create(
-            model=CHAT_DEPLOY,  # deployment name
+            model=CHAT_DEPLOY,
             messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                {"role": "system", "content": SYSTEM_COACH},
+                {"role": "user", "content": f"STYLE:\n{style}"},
+                {"role": "user", "content": json.dumps(tool_ctx, ensure_ascii=False)},
             ],
         )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        # Fallback: quick plain text made from plan
-        lines = [
-            f"## Snapshot\n- Target: {plan.get('target_role')} (fit {plan.get('fit_score')}%)",
-            "## What to Focus On (Top 3)",
-        ]
-        for g in (plan.get("missing_skills") or [])[:3]:
-            lines.append(f"- {g.get('skill')}")
-        lines += [
-            "## 30 / 60 / 90 Plan",
-            "- **30d:** Enroll in course #1 and meet a mentor",
-            "- **60d:** Apply skills in a project",
-            "- **90d:** Present outcomes to manager",
-        ]
-        return "\n".join(lines)
+        return (resp.choices[0].message.content or "").strip()
+    except Exception:
+        # Fallback: reuse summarize() which is grounded and safe
+        return summarize(plan, leadership)
