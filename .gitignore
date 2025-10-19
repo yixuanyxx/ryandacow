@@ -8,5 +8,3 @@ spmvenv/
 
 # ignore python cache files
 __pycache__/
-
-node_modules/
