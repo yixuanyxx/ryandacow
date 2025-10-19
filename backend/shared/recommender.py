@@ -2,8 +2,8 @@
 
 import numpy as np
 from typing import Dict, List
-from backend.shared.embeddings import embed_text, cosine
-from backend.shared.skill_normalizer import normalize_list
+from embeddings import embed_text, cosine
+from skill_normalizer import normalize_list
 
 # --- Helper to convert lists to numpy arrays ---
 def _as_np(v): 

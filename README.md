@@ -33,6 +33,9 @@ For windows:
 
 ### To run the task microservice:
 ```python app.py```
-(user-management microservice runs on port 5002)
+(user-management microservice runs on port 5001)
+
+### Frontend Access:
+The frontend runs on http://localhost:5173
 
 ===================================================

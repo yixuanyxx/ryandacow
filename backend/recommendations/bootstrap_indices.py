@@ -3,7 +3,7 @@ import json
 import os
 from typing import List, Dict
 
-DATA_DIR = os.getenv("BACKEND_DATA_DIR", "backend/data")
+DATA_DIR = os.getenv("BACKEND_DATA_DIR", "../data")
 
 def _load_json(path: str) -> List[Dict]:
     with open(path, "r", encoding="utf-8") as f:

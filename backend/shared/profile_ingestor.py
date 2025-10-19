@@ -1,7 +1,7 @@
 import json, os, hashlib
 from typing import Dict, List, Optional
 from datetime import datetime
-from backend.shared.embeddings import embed_text
+from embeddings import embed_text
 
 class ProfileIngestor:
     """

@@ -33,10 +33,10 @@ class ChatRepo:
 
     def get_user_skills(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's skills for AI context"""
-        res = self.db.table("user_skills").select(`
+        res = self.db.table("user_skills").select("""
             *,
             skills(*)
-        `).eq("user_id", user_id).execute()
+        """).eq("user_id", user_id).execute()
         return res.data or []
 
     def get_user_profile(self, user_id: int) -> Optional[Dict[str, Any]]:

@@ -1,11 +1,16 @@
 import json
 from typing import Dict
-from backend.shared.leadership import leadership_score
-from backend.recommendations.bootstrap_indices import load_roles, load_courses, load_mentors
-from backend.shared.recommender import (
+import sys
+import os
+sys.path.append('..')
+sys.path.append('../shared')
+sys.path.append('../recommendations')
+from shared.leadership import leadership_score
+from recommendations.bootstrap_indices import load_roles, load_courses, load_mentors
+from shared.recommender import (
     role_recommendations, skill_gaps, top_courses_for_gaps, top_mentors, assemble_plan
 )
-from backend.ai_chat.llm_client import summarize
+from llm_client.llm_client import summarize
 
 # Load in-memory indices once (fast, no DB needed)
 ROLES   = load_roles()
@@ -15,7 +20,7 @@ MENTORS = load_mentors()
 # Minimal employee fetch. Replace with your real user/profile fetch when backend is ready.
 def _get_employee_by_id_from_cache(cache_path: str, user_id: int) -> Dict:
     import json
-    with open("backend/data/profile_cache.json","r",encoding="utf-8") as f:
+    with open("../data/profile_cache.json","r",encoding="utf-8") as f:
         cache = json.load(f)
     entry = cache.get(str(user_id))
     if not entry:
@@ -25,7 +30,7 @@ def _get_employee_by_id_from_cache(cache_path: str, user_id: int) -> Dict:
 
 def run_full_plan(user_id: int) -> Dict:
     # 1) employee profile (vector already precomputed in cache)
-    employee = _get_employee_by_id_from_cache("backend/data/profile_cache.json", user_id)
+    employee = _get_employee_by_id_from_cache("../data/profile_cache.json", user_id)
 
     # 2) roles → best role
     role_hits = role_recommendations(employee, ROLES, top_k=5)

@@ -1,32 +1,61 @@
 import sys
 sys.path.append('..')
-from repo.recommendations_repo import RecommendationsRepo
 from typing import Dict, Any, Optional, List
 from datetime import datetime, UTC
 
 class RecommendationsService:
-    def __init__(self, repo: Optional[RecommendationsRepo] = None):
-        self.repo = repo or RecommendationsRepo()
+    def __init__(self, repo: Optional[None] = None):
+        # For MVP, we don't use the database repo
+        pass
     
     def get_user_recommendations(self, user_id: str) -> Dict[str, Any]:
-        """Get all recommendations for user dashboard"""
+        """Get all recommendations for user dashboard - MVP version with demo data"""
         try:
-            user_profile = self.repo.get_user_profile(user_id)
-            if not user_profile:
-                return {"Code": 404, "Message": "User not found"}
+            # Demo user data
+            demo_users = {
+                "EMP-20001": {"name": "Samantha Lee", "job_title": "Cloud Solutions Architect", "department": "Information Technology"},
+                "EMP-20002": {"name": "Aisyah Rahman", "job_title": "Cybersecurity Analyst", "department": "Information Technology"},
+                "EMP-20003": {"name": "Rohan Mehta", "job_title": "Finance Manager (FP&A)", "department": "Finance"},
+                "EMP-20004": {"name": "Grace Lee", "job_title": "Senior HR Business Partner", "department": "Human Resource"},
+                "EMP-20005": {"name": "Felicia Goh", "job_title": "Treasury Analyst", "department": "Finance"}
+            }
+            
+            user_profile = demo_users.get(user_id, {"name": "Demo User", "job_title": "Employee", "department": "General"})
 
-            # Get different types of recommendations
-            course_rec = self._get_top_course_recommendation(user_id)
-            mentor_rec = self._get_top_mentor_recommendation(user_id)
-            career_rec = self._get_career_recommendation(user_id)
-
-            recommendations = []
-            if course_rec:
-                recommendations.append(course_rec)
-            if mentor_rec:
-                recommendations.append(mentor_rec)
-            if career_rec:
-                recommendations.append(career_rec)
+            # Demo recommendations
+            recommendations = [
+                {
+                    "type": "course",
+                    "title": "Leadership Fundamentals",
+                    "description": "Develop essential leadership skills for career advancement",
+                    "match_score": 92,
+                    "metadata": {
+                        "duration_weeks": 24,
+                        "required_skills": ["Communication", "Team Management"]
+                    }
+                },
+                {
+                    "type": "mentor",
+                    "title": "Michael Chen",
+                    "description": "Senior Tech Lead with extensive experience in cloud architecture",
+                    "match_score": 88,
+                    "metadata": {
+                        "job_title": "Senior Tech Lead",
+                        "department": "Information Technology",
+                        "experience_years": 15
+                    }
+                },
+                {
+                    "type": "career",
+                    "title": "Senior Software Engineer",
+                    "description": "Next step: Senior Software Engineer - Lead technical projects and mentor junior developers",
+                    "match_score": 85,
+                    "metadata": {
+                        "target_role": "Senior Software Engineer",
+                        "required_skills": ["System Design", "Team Leadership", "Technical Mentoring"]
+                    }
+                }
+            ]
 
             return {
                 "Code": 200,
@@ -42,26 +71,35 @@ class RecommendationsService:
             return {"Code": 500, "Message": f"Error generating recommendations: {str(e)}"}
 
     def get_course_recommendations(self, user_id: str) -> Dict[str, Any]:
-        """Get personalized course recommendations"""
+        """Get personalized course recommendations - MVP version with demo data"""
         try:
-            user_skills = self.repo.get_user_skills(user_id)
-            courses = self.repo.get_courses()
-            
-            # Simple matching algorithm
-            recommendations = []
-            for course in courses[:3]:  # Top 3 courses
-                match_score = self._calculate_course_match(user_skills, course)
-                recommendations.append({
-                    "id": course['id'],
-                    "title": course['title'],
-                    "description": course['description'],
-                    "duration_weeks": course['duration_weeks'],
-                    "match_score": match_score,
-                    "required_skills": course['required_skills']
-                })
-
-            # Sort by match score
-            recommendations.sort(key=lambda x: x['match_score'], reverse=True)
+            # Demo course recommendations
+            recommendations = [
+                {
+                    "id": 1,
+                    "title": "Leadership Fundamentals",
+                    "description": "Develop essential leadership skills for career advancement",
+                    "duration_weeks": 24,
+                    "match_score": 92,
+                    "required_skills": ["Communication", "Team Management"]
+                },
+                {
+                    "id": 2,
+                    "title": "System Design Masterclass",
+                    "description": "Learn to design scalable and robust systems",
+                    "duration_weeks": 32,
+                    "match_score": 88,
+                    "required_skills": ["Architecture", "Scalability", "Performance"]
+                },
+                {
+                    "id": 3,
+                    "title": "Advanced Python for Leaders",
+                    "description": "Master Python programming for senior technical roles",
+                    "duration_weeks": 40,
+                    "match_score": 85,
+                    "required_skills": ["Python", "Advanced Programming", "Code Review"]
+                }
+            ]
 
             return {
                 "Code": 200,
@@ -72,27 +110,35 @@ class RecommendationsService:
             return {"Code": 500, "Message": f"Error getting course recommendations: {str(e)}"}
 
     def get_mentor_recommendations(self, user_id: str) -> Dict[str, Any]:
-        """Get mentor recommendations"""
+        """Get mentor recommendations - MVP version with demo data"""
         try:
-            user_skills = self.repo.get_user_skills(user_id)
-            potential_mentors = self.repo.get_potential_mentors(user_id)
-            
-            recommendations = []
-            for mentor in potential_mentors[:3]:  # Top 3 mentors
-                mentor_skills = mentor.get('user_skills', [])
-                match_score = self._calculate_mentor_match(user_skills, mentor_skills)
-                
-                recommendations.append({
-                    "id": mentor['id'],
-                    "name": mentor['name'],
-                    "job_title": mentor['job_title'],
-                    "department": mentor['department'],
-                    "match_score": match_score,
-                    "skills": [skill.get('skills', {}).get('specialisation / unit', '') for skill in mentor_skills[:3]]
-                })
-
-            # Sort by match score
-            recommendations.sort(key=lambda x: x['match_score'], reverse=True)
+            # Demo mentor recommendations
+            recommendations = [
+                {
+                    "id": 1,
+                    "name": "Michael Chen",
+                    "job_title": "Senior Tech Lead",
+                    "department": "Information Technology",
+                    "match_score": 88,
+                    "skills": ["Cloud Architecture", "Team Leadership", "System Design"]
+                },
+                {
+                    "id": 2,
+                    "name": "Sarah Chen",
+                    "job_title": "Engineering Manager",
+                    "department": "Information Technology",
+                    "match_score": 85,
+                    "skills": ["Project Management", "Agile Coaching", "Technical Strategy"]
+                },
+                {
+                    "id": 3,
+                    "name": "David Kumar",
+                    "job_title": "Principal Engineer",
+                    "department": "Information Technology",
+                    "match_score": 82,
+                    "skills": ["Architecture", "Performance Optimization", "Code Review"]
+                }
+            ]
 
             return {
                 "Code": 200,
@@ -101,71 +147,3 @@ class RecommendationsService:
             }
         except Exception as e:
             return {"Code": 500, "Message": f"Error getting mentor recommendations: {str(e)}"}
-
-    def _get_top_course_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get top course recommendation for dashboard"""
-        courses = self.repo.get_courses()
-        if not courses:
-            return None
-
-        # Return the first course as top recommendation
-        course = courses[0]
-        return {
-            "type": "course",
-            "title": course['title'],
-            "description": course['description'],
-            "match_score": 92,
-            "metadata": {
-                "duration_weeks": course['duration_weeks'],
-                "required_skills": course['required_skills']
-            }
-        }
-
-    def _get_top_mentor_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get top mentor recommendation for dashboard"""
-        potential_mentors = self.repo.get_potential_mentors(user_id)
-        if not potential_mentors:
-            return None
-
-        # Return the first mentor as top recommendation
-        mentor = potential_mentors[0]
-        return {
-            "type": "mentor",
-            "title": mentor['name'],
-            "description": f"{mentor['job_title']} with extensive experience",
-            "match_score": 88,
-            "metadata": {
-                "job_title": mentor['job_title'],
-                "department": mentor['department'],
-                "experience_years": 15
-            }
-        }
-
-    def _get_career_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get career recommendation for dashboard"""
-        pathways = self.repo.get_career_pathways()
-        if not pathways:
-            return None
-
-        # Return the first pathway as recommendation
-        pathway = pathways[0]
-        return {
-            "type": "career",
-            "title": pathway['name'],
-            "description": f"Next step: {pathway['name']} - {pathway['description']}",
-            "match_score": 85,
-            "metadata": {
-                "target_role": pathway['target_role'],
-                "required_skills": pathway['required_skills']
-            }
-        }
-
-    def _calculate_course_match(self, user_skills: List[Dict[str, Any]], course: Dict[str, Any]) -> float:
-        """Calculate course match score"""
-        # Simple matching - return high score for demo
-        return 85.0 + (hash(course['title']) % 15)  # 85-100 range
-
-    def _calculate_mentor_match(self, user_skills: List[Dict[str, Any]], mentor_skills: List[Dict[str, Any]]) -> float:
-        """Calculate mentor match score"""
-        # Simple matching - return high score for demo
-        return 80.0 + (hash(str(mentor_skills)) % 20)  # 80-100 range

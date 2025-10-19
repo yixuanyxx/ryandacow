@@ -48,14 +48,21 @@ def clear_chat():
     except Exception as e:
         return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
 
-@chat_bp.route("/guidance", methods=["POST"])
-@require_auth
-def guidance():
-    body = request.get_json(silent=True) or {}
-    message = body.get("message", "")
-    user = getattr(request, "user", {}) or {}
-    user_id = user.get("id") or body.get("user_id")  # fallback if needed
-    context = {"user_profile": user, "user_skills": []}
-    service = ChatService()
-    result = service.generate_career_guidance(user_id, message, context)
-    return jsonify(result), result.get("Code", 200)
+@chat_bp.route("/test", methods=["GET"])
+def test():
+    """Test endpoint to verify service is running"""
+    return jsonify({"Code": 200, "Message": "AI Chat service is running"}), 200
+
+@chat_bp.route("/test-guidance", methods=["POST"])
+def test_guidance():
+    """Test guidance endpoint without authentication"""
+    try:
+        body = request.get_json(silent=True) or {}
+        message = body.get("message", "test message")
+        user_id = body.get("user_id", 1)
+        context = {"user_profile": {"name": "Test User", "job_title": "Software Engineer"}, "user_skills": []}
+        service = ChatService()
+        result = service.generate_career_guidance(user_id, message, context)
+        return jsonify(result), result.get("Code", 200)
+    except Exception as e:
+        return jsonify({"Code": 500, "Message": f"Internal error: {str(e)}"}), 500
