@@ -1,10 +1,10 @@
 // services/authService.js
-import api from './api.js'
+import apiCore from "./apiCore.js"
 
 export const authService = {
   async login(email, password) {
     try {
-      const response = await api.post('/api/auth/login', {
+      const response = await apiCore.post('/auth/login', {
         email,
         password
       })
@@ -31,7 +31,7 @@ export const authService = {
 
   async getProfile() {
     try {
-      const response = await api.get('/api/auth/profile')
+      const response = await apiCore.get('/auth/profile')
       return {
         success: true,
         data: response.data.data
