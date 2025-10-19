@@ -9,7 +9,7 @@ recommendations_bp = Blueprint("recommendations", __name__, url_prefix="/recomme
 from services.recommendations_service import RecommendationsService
 service = RecommendationsService()
 
-@recommendations_bp.route("/<int:user_id>", methods=["GET"])
+@recommendations_bp.route("/<user_id>", methods=["GET"])
 def get_recommendations(user_id):
     """Get AI-powered recommendations for user dashboard"""
     try:
@@ -19,7 +19,7 @@ def get_recommendations(user_id):
     except Exception as e:
         return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
 
-@recommendations_bp.route("/courses/<int:user_id>", methods=["GET"])
+@recommendations_bp.route("/courses/<user_id>", methods=["GET"])
 def get_course_recommendations(user_id):
     """Get personalized course recommendations"""
     try:
@@ -29,7 +29,7 @@ def get_course_recommendations(user_id):
     except Exception as e:
         return jsonify({"Code": 500, "Message": f"Internal server error: {str(e)}"}), 500
 
-@recommendations_bp.route("/mentors/<int:user_id>", methods=["GET"])
+@recommendations_bp.route("/mentors/<user_id>", methods=["GET"])
 def get_mentor_recommendations(user_id):
     """Get mentor recommendations"""
     try:

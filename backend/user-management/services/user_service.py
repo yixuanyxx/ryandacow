@@ -1,147 +1,233 @@
 import sys
 sys.path.append('..')
-from shared.auth import generate_token
-from repo.user_repo import UserRepo, UserPersonalInfoRepo, EmploymentInfoRepo
-from models.user import User
-from typing import Dict, Any, Optional
-from datetime import datetime, UTC
-import hashlib
-import secrets
+from repo.user_repo import UserRepo
+from typing import Dict, Any, Optional, List
 
 class UserService:
-    def __init__(self, user_repo: Optional[UserRepo] = None, 
-                 personal_info_repo: Optional[UserPersonalInfoRepo] = None,
-                 employment_repo: Optional[EmploymentInfoRepo] = None):
+    def __init__(self, user_repo: Optional[UserRepo] = None):
         self.user_repo = user_repo or UserRepo()
-        self.personal_info_repo = personal_info_repo or UserPersonalInfoRepo()
-        self.employment_repo = employment_repo or EmploymentInfoRepo()
     
-    def register_user(self, payload: dict) -> dict:
-        """Register a new user"""
-        required_fields = ['employee_id', 'email', 'password', 'first_name', 'last_name']
-        missing_fields = [field for field in required_fields if not payload.get(field)]
-        
-        if missing_fields:
-            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
-
-        # Check if user already exists
-        existing_user = self.user_repo.get_user_by_email(payload['email'])
-        if existing_user:
-            raise ValueError("User with this email already exists")
-
-        # Hash password
-        password_hash = self._hash_password(payload['password'])
-
-        # Create user
-        user_data = {
-            'employee_id': payload['employee_id'],
-            'email': payload['email'],
-            'password_hash': password_hash,
-            'first_name': payload['first_name'],
-            'last_name': payload['last_name'],
-            'is_active': True,
-            'created_at': datetime.now(UTC).isoformat(),
-            'updated_at': datetime.now(UTC).isoformat()
-        }
-
-        created_user = self.user_repo.create_user(user_data)
-        
-        return {
-            "Code": 201,
-            "Message": "User registered successfully",
-            "data": {
-                "user": created_user,
-                "token": generate_token(created_user['id'])
-            }
-        }
-
-    def login_user(self, email: str, password: str) -> dict:
-        """Authenticate user login"""
-        user_data = self.user_repo.get_user_by_email(email)
-        
-        if not user_data:
-            return {"Code": 401, "Message": "Invalid email or password"}
-
-        if not self._verify_password(password, user_data['password_hash']):
-            return {"Code": 401, "Message": "Invalid email or password"}
-
-        if not user_data['is_active']:
-            return {"Code": 403, "Message": "Account is deactivated"}
-
-        # Update last login
-        self.user_repo.update_last_login(user_data['id'])
-
-        return {
-            "Code": 200,
-            "Message": "Login successful",
-            "data": {
-                "user": user_data,
-                "token": generate_token(user_data['id'])
-            }
-        }
-
-    def get_user_profile(self, user_id: int) -> dict:
-        """Get complete user profile"""
-        user_data = self.user_repo.get_user_by_id(user_id)
-        if not user_data:
-            return {"Code": 404, "Message": "User not found"}
-
-        # Get additional profile data
-        personal_info = self.personal_info_repo.get_profile_by_user_id(user_id)
-        employment = self.employment_repo.get_employment_by_user_id(user_id)
-
-        return {
-            "Code": 200,
-            "Message": "Success",
-            "data": {
-                "user": user_data,
-                "personal_info": personal_info,
-                "employment": employment
-            }
-        }
-
-    def update_profile(self, user_id: int, payload: dict) -> dict:
-        """Update user profile"""
-        user_data = self.user_repo.get_user_by_id(user_id)
-        if not user_data:
-            return {"Code": 404, "Message": "User not found"}
-
-        # Update user basic info
-        user_updates = {}
-        if 'first_name' in payload:
-            user_updates['first_name'] = payload['first_name']
-        if 'last_name' in payload:
-            user_updates['last_name'] = payload['last_name']
-
-        if user_updates:
-            user_updates['updated_at'] = datetime.now(UTC).isoformat()
-            self.user_repo.update_user(user_id, user_updates)
-
-        # Update personal info
-        if any(key in payload for key in ['office_location', 'bio', 'profile_photo_url', 'phone']):
-            personal_updates = {}
-            personal_fields = ['office_location', 'bio', 'profile_photo_url', 'phone']
-            
-            for field in personal_fields:
-                if field in payload:
-                    personal_updates[field] = payload[field]
-
-            if personal_updates:
-                personal_updates['updated_at'] = datetime.now(UTC).isoformat()
-                self.personal_info_repo.update_profile(user_id, personal_updates)
-
-        return {"Code": 200, "Message": "Profile updated successfully"}
-
-    def _hash_password(self, password: str) -> str:
-        """Hash password using SHA-256 with salt"""
-        salt = secrets.token_hex(16)
-        password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
-        return f"{salt}:{password_hash}"
-
-    def _verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify password against hash"""
+    def get_user_profile(self, user_id: str) -> dict:
+        """Get complete user profile - MVP version with demo data"""
         try:
-            salt, hash_part = password_hash.split(':')
-            return hashlib.sha256((password + salt).encode()).hexdigest() == hash_part
-        except:
-            return False
+            # Demo user data - in production, this would come from database
+            demo_users = {
+                "EMP-20001": {
+                    "id": "EMP-20001",
+                    "email": "samantha.lee@globalpsa.com",
+                    "name": "Samantha Lee",
+                    "job_title": "Cloud Solutions Architect",
+                    "department": "Information Technology",
+                    "unit": "Infrastructure Architecture & Cloud",
+                    "line_manager": "Victor Tan",
+                    "in_role_since": "2022-07-01",
+                    "hire_date": "2016-03-15",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20002": {
+                    "id": "EMP-20002",
+                    "email": "aisyah.rahman@globalpsa.com",
+                    "name": "Nur Aisyah Binte Rahman",
+                    "job_title": "Cybersecurity Analyst",
+                    "department": "Information Technology",
+                    "unit": "Cybersecurity Operations",
+                    "line_manager": "Daniel Chua",
+                    "in_role_since": "2024-07-01",
+                    "hire_date": "2023-01-15",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20003": {
+                    "id": "EMP-20003",
+                    "email": "rohan.mehta@globalpsa.com",
+                    "name": "Rohan Mehta",
+                    "job_title": "Finance Manager (FP&A)",
+                    "department": "Finance",
+                    "unit": "Financial Planning & Analysis",
+                    "line_manager": "Sarah Chen",
+                    "in_role_since": "2023-01-01",
+                    "hire_date": "2020-06-01",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20004": {
+                    "id": "EMP-20004",
+                    "email": "grace.lee@globalpsa.com",
+                    "name": "Grace Lee",
+                    "job_title": "Senior HR Business Partner",
+                    "department": "Human Resource",
+                    "unit": "Business Partnering",
+                    "line_manager": "Michael Wong",
+                    "in_role_since": "2021-03-01",
+                    "hire_date": "2018-09-01",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20005": {
+                    "id": "EMP-20005",
+                    "email": "felicia.goh@globalpsa.com",
+                    "name": "Felicia Goh",
+                    "job_title": "Treasury Analyst",
+                    "department": "Finance",
+                    "unit": "Treasury Operations",
+                    "line_manager": "David Lim",
+                    "in_role_since": "2022-01-01",
+                    "hire_date": "2019-08-01",
+                    "last_updated": "2025-10-09"
+                }
+            }
+            
+            if user_id not in demo_users:
+                return {"Code": 404, "Message": "User not found"}
+
+            user_data = demo_users[user_id]
+            
+            # Demo skills data - in production, this would come from database
+            demo_skills = {
+                "EMP-20001": [
+                    {
+                        "id": 1,
+                        "user_id": "EMP-20001",
+                        "skill_id": 64,
+                        "skills": {
+                            "id": 64,
+                            "function / unit / skill": "Info Tech: Infrastructure",
+                            "specialisation / unit": "Cloud Computing: Cloud Architecture"
+                        }
+                    }
+                ],
+                "EMP-20002": [
+                    {
+                        "id": 2,
+                        "user_id": "EMP-20002",
+                        "skill_id": 65,
+                        "skills": {
+                            "id": 65,
+                            "function / unit / skill": "Info Tech: Cybersecurity",
+                            "specialisation / unit": "Cybersecurity Operations"
+                        }
+                    }
+                ],
+                "EMP-20003": [
+                    {
+                        "id": 3,
+                        "user_id": "EMP-20003",
+                        "skill_id": 45,
+                        "skills": {
+                            "id": 45,
+                            "function / unit / skill": "Finance: Financial Planning & Analysis",
+                            "specialisation / unit": "Financial Planning and Analysis"
+                        }
+                    }
+                ],
+                "EMP-20004": [
+                    {
+                        "id": 4,
+                        "user_id": "EMP-20004",
+                        "skill_id": 12,
+                        "skills": {
+                            "id": 12,
+                            "function / unit / skill": "Human Resource: Business Partnering",
+                            "specialisation / unit": "Generalist / Business Partner"
+                        }
+                    }
+                ],
+                "EMP-20005": [
+                    {
+                        "id": 5,
+                        "user_id": "EMP-20005",
+                        "skill_id": 48,
+                        "skills": {
+                            "id": 48,
+                            "function / unit / skill": "Finance: Treasury Operations",
+                            "specialisation / unit": "Treasury Management"
+                        }
+                    }
+                ]
+            }
+
+            return {
+                "Code": 200,
+                "Message": "Success",
+                "data": {
+                    "user": user_data,
+                    "skills": demo_skills.get(user_id, [])
+                }
+            }
+        except Exception as e:
+            return {"Code": 500, "Message": f"Internal server error: {str(e)}"}
+
+    def get_users_by_department(self, department: str) -> dict:
+        """Get users by department - MVP version with demo data"""
+        try:
+            # Demo users data
+            all_users = {
+                "EMP-20001": {
+                    "id": "EMP-20001",
+                    "email": "samantha.lee@globalpsa.com",
+                    "name": "Samantha Lee",
+                    "job_title": "Cloud Solutions Architect",
+                    "department": "Information Technology",
+                    "unit": "Infrastructure Architecture & Cloud",
+                    "line_manager": "Victor Tan",
+                    "in_role_since": "2022-07-01",
+                    "hire_date": "2016-03-15",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20002": {
+                    "id": "EMP-20002",
+                    "email": "aisyah.rahman@globalpsa.com",
+                    "name": "Nur Aisyah Binte Rahman",
+                    "job_title": "Cybersecurity Analyst",
+                    "department": "Information Technology",
+                    "unit": "Cybersecurity Operations",
+                    "line_manager": "Daniel Chua",
+                    "in_role_since": "2024-07-01",
+                    "hire_date": "2023-01-15",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20003": {
+                    "id": "EMP-20003",
+                    "email": "rohan.mehta@globalpsa.com",
+                    "name": "Rohan Mehta",
+                    "job_title": "Finance Manager (FP&A)",
+                    "department": "Finance",
+                    "unit": "Financial Planning & Analysis",
+                    "line_manager": "Sarah Chen",
+                    "in_role_since": "2023-01-01",
+                    "hire_date": "2020-06-01",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20004": {
+                    "id": "EMP-20004",
+                    "email": "grace.lee@globalpsa.com",
+                    "name": "Grace Lee",
+                    "job_title": "Senior HR Business Partner",
+                    "department": "Human Resource",
+                    "unit": "Business Partnering",
+                    "line_manager": "Michael Wong",
+                    "in_role_since": "2021-03-01",
+                    "hire_date": "2018-09-01",
+                    "last_updated": "2025-10-09"
+                },
+                "EMP-20005": {
+                    "id": "EMP-20005",
+                    "email": "felicia.goh@globalpsa.com",
+                    "name": "Felicia Goh",
+                    "job_title": "Treasury Analyst",
+                    "department": "Finance",
+                    "unit": "Treasury Operations",
+                    "line_manager": "David Lim",
+                    "in_role_since": "2022-01-01",
+                    "hire_date": "2019-08-01",
+                    "last_updated": "2025-10-09"
+                }
+            }
+            
+            # Filter users by department
+            department_users = [user for user in all_users.values() if user["department"] == department]
+            
+            return {
+                "Code": 200,
+                "Message": "Success",
+                "data": department_users
+            }
+        except Exception as e:
+            return {"Code": 500, "Message": f"Internal server error: {str(e)}"}

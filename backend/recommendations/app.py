@@ -20,6 +20,6 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    port = "5003"
+    port = "5004"
     print(f"Recommendations microservice running on port {port}")
     app.run(host="0.0.0.0", port=int(port), debug=True)

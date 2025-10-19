@@ -8,7 +8,7 @@ class RecommendationsService:
     def __init__(self, repo: Optional[RecommendationsRepo] = None):
         self.repo = repo or RecommendationsRepo()
     
-    def get_user_recommendations(self, user_id: int) -> Dict[str, Any]:
+    def get_user_recommendations(self, user_id: str) -> Dict[str, Any]:
         """Get all recommendations for user dashboard"""
         try:
             user_profile = self.repo.get_user_profile(user_id)
@@ -33,7 +33,7 @@ class RecommendationsService:
                 "Message": "Success",
                 "data": {
                     "recommendations": recommendations,
-                    "user_name": f"{user_profile['first_name']} {user_profile['last_name']}",
+                    "user_name": user_profile['name'],
                     "job_title": user_profile['job_title'],
                     "department": user_profile['department']
                 }
@@ -41,7 +41,7 @@ class RecommendationsService:
         except Exception as e:
             return {"Code": 500, "Message": f"Error generating recommendations: {str(e)}"}
 
-    def get_course_recommendations(self, user_id: int) -> Dict[str, Any]:
+    def get_course_recommendations(self, user_id: str) -> Dict[str, Any]:
         """Get personalized course recommendations"""
         try:
             user_skills = self.repo.get_user_skills(user_id)
@@ -55,10 +55,9 @@ class RecommendationsService:
                     "id": course['id'],
                     "title": course['title'],
                     "description": course['description'],
-                    "duration_hours": course['duration_hours'],
-                    "difficulty_level": course['difficulty_level'],
+                    "duration_weeks": course['duration_weeks'],
                     "match_score": match_score,
-                    "category": course['category']
+                    "required_skills": course['required_skills']
                 })
 
             # Sort by match score
@@ -72,7 +71,7 @@ class RecommendationsService:
         except Exception as e:
             return {"Code": 500, "Message": f"Error getting course recommendations: {str(e)}"}
 
-    def get_mentor_recommendations(self, user_id: int) -> Dict[str, Any]:
+    def get_mentor_recommendations(self, user_id: str) -> Dict[str, Any]:
         """Get mentor recommendations"""
         try:
             user_skills = self.repo.get_user_skills(user_id)
@@ -85,11 +84,11 @@ class RecommendationsService:
                 
                 recommendations.append({
                     "id": mentor['id'],
-                    "name": f"{mentor['first_name']} {mentor['last_name']}",
+                    "name": mentor['name'],
                     "job_title": mentor['job_title'],
                     "department": mentor['department'],
                     "match_score": match_score,
-                    "skills": [skill.get('skills', {}).get('name', '') for skill in mentor_skills[:3]]
+                    "skills": [skill.get('skills', {}).get('specialisation / unit', '') for skill in mentor_skills[:3]]
                 })
 
             # Sort by match score
@@ -103,7 +102,7 @@ class RecommendationsService:
         except Exception as e:
             return {"Code": 500, "Message": f"Error getting mentor recommendations: {str(e)}"}
 
-    def _get_top_course_recommendation(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def _get_top_course_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get top course recommendation for dashboard"""
         courses = self.repo.get_courses()
         if not courses:
@@ -117,13 +116,12 @@ class RecommendationsService:
             "description": course['description'],
             "match_score": 92,
             "metadata": {
-                "duration_hours": course['duration_hours'],
-                "difficulty_level": course['difficulty_level'],
-                "category": course['category']
+                "duration_weeks": course['duration_weeks'],
+                "required_skills": course['required_skills']
             }
         }
 
-    def _get_top_mentor_recommendation(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def _get_top_mentor_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get top mentor recommendation for dashboard"""
         potential_mentors = self.repo.get_potential_mentors(user_id)
         if not potential_mentors:
@@ -133,7 +131,7 @@ class RecommendationsService:
         mentor = potential_mentors[0]
         return {
             "type": "mentor",
-            "title": f"{mentor['first_name']} {mentor['last_name']}",
+            "title": mentor['name'],
             "description": f"{mentor['job_title']} with extensive experience",
             "match_score": 88,
             "metadata": {
@@ -143,7 +141,7 @@ class RecommendationsService:
             }
         }
 
-    def _get_career_recommendation(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def _get_career_recommendation(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get career recommendation for dashboard"""
         pathways = self.repo.get_career_pathways()
         if not pathways:
@@ -157,9 +155,8 @@ class RecommendationsService:
             "description": f"Next step: {pathway['name']} - {pathway['description']}",
             "match_score": 85,
             "metadata": {
-                "department": pathway['department'],
-                "level": pathway['level'],
-                "skills_needed": ["Team Leadership", "System Design"]
+                "target_role": pathway['target_role'],
+                "required_skills": pathway['required_skills']
             }
         }
 
