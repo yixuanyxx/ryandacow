@@ -1,6 +1,6 @@
 <template>
   <div class="card">
-    <div class="header">🧭 Mentors</div>
+    <div class="header">Mentors</div>
     <ul class="list">
       <li v-for="m in (mentors || []).slice(0,3)" :key="m.id">
         {{ m.name }} <span class="muted">(ID: {{ m.id }})</span>

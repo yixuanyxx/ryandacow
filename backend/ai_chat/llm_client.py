@@ -2,8 +2,13 @@
 from dotenv import load_dotenv; load_dotenv()
 
 import os, json
+import sys
 from typing import Dict, List
-from backend.shared.llm_clients import get_apim_client_for
+
+# Add the backend directory to the path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from shared.llm_clients import get_apim_client_for
 
 # System prompts
 SYSTEM_PROMPT = (

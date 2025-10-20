@@ -2,8 +2,13 @@
 from dotenv import load_dotenv; load_dotenv()
 
 import os, time
+import sys
 from typing import List, Union
-from backend.shared.llm_clients import get_apim_client_for
+
+# Add the current directory to the path so we can import from shared modules
+sys.path.append(os.path.dirname(__file__))
+
+from llm_clients import get_apim_client_for
 
 # Deployment name (from .env)
 DEPLOY_EMBED = os.getenv("AZURE_DEPLOY_EMBED", "text-embedding-3-small")

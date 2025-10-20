@@ -1,13 +1,14 @@
 from flask import Blueprint, request, jsonify
-from backend.shared.auth import require_auth
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from shared.auth import require_auth
 import traceback
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/chat")
 
 # Import service from services directory
-from backend.ai_chat.services.chat_service import ChatService
+from services.chat_service import ChatService
 service = ChatService()
 
 @chat_bp.route("/message", methods=["POST"])
@@ -87,7 +88,7 @@ def guidance():
 
 @chat_bp.get("/health")
 def health():
-    from backend.shared.database import get_db_connection
+    from shared.database import get_db_connection
     db = get_db_connection()
     return {"db": "ready" if db.ready() else "demo"}
 

@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom CSS variables for dark theme */
+:root {
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --muted: #94a3b8;
+  --panel: #1e293b;
+  --recommendation-bg: rgba(0, 0, 0, 0.3);
+  --recommendation-border: rgba(255, 255, 255, 0.1);
+  --recommendation-title: #ffffff;
+  --recommendation-text: #cbd5e1;
+  --background: #0f172a;
+  --surface: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+}
+
+/* Button Styles */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+}
+
+.btn-secondary {
+  @apply bg-gray-700 text-gray-200 hover:bg-gray-600 focus:ring-gray-500;
+}
+
+.btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Dark theme base styles */
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(10px);
+}

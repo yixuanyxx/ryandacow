@@ -9,6 +9,21 @@ def _data_dir() -> Path:
     if env:
         return Path(env).expanduser().resolve()
     # default to backend/data next to repo
+    # Try multiple possible locations
+    possible_paths = [
+        Path(__file__).parent / ".." / ".." / "data",  # from recommendations
+        Path(__file__).parent / ".." / "data",         # from backend
+        Path(__file__).parent / "data",                # same directory
+        Path.cwd() / "data",                           # current working directory
+        Path.cwd() / "backend" / "data"                # backend/data from project root
+    ]
+    
+    for path in possible_paths:
+        resolved_path = path.resolve()
+        if resolved_path.exists():
+            return resolved_path
+    
+    # If none found, return the first option and let it fail with a clear error
     return (Path(__file__).parent / ".." / ".." / "data").resolve()
 
 def _load_json(name: str) -> List[Dict]:

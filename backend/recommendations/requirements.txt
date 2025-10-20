@@ -1,0 +1,10 @@
+flask
+flask-cors
+python-dotenv
+supabase==2.3.4
+pyjwt
+python-dateutil
+bcrypt
+requests
+numpy
+pandas

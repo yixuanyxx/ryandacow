@@ -1,9 +1,15 @@
 # backend/shared/recommender.py
 
 import numpy as np
+import sys
+import os
 from typing import Dict, List
-from backend.shared.embeddings import embed_text, cosine
-from backend.shared.skill_normalizer import normalize_list
+
+# Add the current directory to the path so we can import from shared modules
+sys.path.append(os.path.dirname(__file__))
+
+from embeddings import embed_text, cosine
+from skill_normalizer import normalize_list
 
 # --- Helper to convert lists to numpy arrays ---
 def _as_np(v): 
@@ -18,7 +24,7 @@ def role_recommendations(employee: dict, roles: list, top_k: int = 5) -> list:
     Always return top_k best matches (no hard min threshold).
     Include the final score so upstream can sort or display.
     """
-    from backend.shared.embeddings import embed_text, cosine
+    from embeddings import embed_text, cosine
 
     # build query text from richer signals
     q = " ".join([

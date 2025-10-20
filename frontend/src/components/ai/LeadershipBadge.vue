@@ -8,7 +8,7 @@
     <div class="row">
       <span class="dot" :style="{ background: color }" />
       <strong>{{ level }}</strong>
-      <span>• {{ score.toFixed(1) }}%</span>
+      <span>- {{ score.toFixed(1) }}%</span>
     </div>
     <div class="sub">Focus: {{ focus }}</div>
   </div>
@@ -21,7 +21,7 @@ const props = defineProps({
   leadership: { type: Object, default: () => ({}) },
 });
 
-const level = computed(() => props.leadership?.level ?? "—");
+const level = computed(() => props.leadership?.level ?? "-");
 const score = computed(() => Number(props.leadership?.score ?? 0));
 const focus = computed(() => {
   const plan = props.leadership?.development_plan ?? [];

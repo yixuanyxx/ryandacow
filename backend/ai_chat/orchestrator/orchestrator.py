@@ -2,15 +2,19 @@
 from dotenv import load_dotenv; load_dotenv()
 
 import os, json
+import sys
 from pathlib import Path
 from typing import Dict
 
-from backend.shared.leadership import leadership_score
-from backend.recommendations.bootstrap_indices import load_roles, load_courses, load_mentors
-from backend.shared.recommender import (
+# Add the backend directory to the path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from shared.leadership import leadership_score
+from recommendations.bootstrap_indices import load_roles, load_courses, load_mentors
+from shared.recommender import (
     role_recommendations, skill_gaps, top_courses_for_gaps, top_mentors, assemble_plan
 )
-from backend.ai_chat.llm_client import summarize
+from ai_chat.llm_client import summarize
 
 # --- data dir helper (works from anywhere; override with BACKEND_DATA_DIR) ---
 def _data_dir() -> Path:

@@ -1,7 +1,7 @@
 <!-- src/components/ai/RightPanelEmpty.vue -->
 <template>
   <div class="card glass p-4">
-    <h3 class="text-lg font-semibold mb-1">✨ Ask me about your next step</h3>
+    <h3 class="text-lg font-semibold mb-1">Ask me about your next step</h3>
     <p class="text-sm text-[var(--muted)] mb-3">
       Try one of these to get started:
     </p>

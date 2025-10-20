@@ -1,8 +1,13 @@
 from typing import List, Dict, Optional
 import json, os
+import sys
 import pandas as pd
-from backend.shared.embeddings import embed_text
-from backend.shared.skill_normalizer import normalize_list, normalize_skill
+
+# Add the current directory to the path so we can import from shared modules
+sys.path.append(os.path.dirname(__file__))
+
+from embeddings import embed_text
+from skill_normalizer import normalize_list, normalize_skill
 
 def _embed_field_join(parts: List[str]) -> list[float]:
     text = " | ".join([p for p in parts if p])

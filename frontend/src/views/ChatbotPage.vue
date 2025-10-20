@@ -131,7 +131,7 @@ export default {
         <div class="mb-4 pb-3 border-b border-white/10">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <BaseButton variant="secondary" @click="goBack">← Back</BaseButton>
+              <BaseButton variant="secondary" @click="goBack">Back</BaseButton>
               <h1 class="text-lg font-semibold">Chat with Career AI</h1>
             </div>
             <BaseButton variant="secondary" @click="clearChat">Clear</BaseButton>
@@ -167,7 +167,7 @@ export default {
             :disabled="chatStore.isLoading"
           />
           <BaseButton @click="sendMessage" :disabled="!newMessage.trim() || chatStore.isLoading">
-            Send →
+            Send
           </BaseButton>
         </div>
       </section>
@@ -187,7 +187,7 @@ export default {
               <TopGaps v-if="chatStore.lastPlan?.missing_skills?.length" :gaps="chatStore.lastPlan.missing_skills" />
               <QuickWins @send="pickSuggestion" />
               <div v-if="chatStore.lastFeedback" class="card p-3">
-                <h3 class="text-sm text-[var(--muted)] mb-2">🧭 Recommended Actions</h3>
+                <h3 class="text-sm text-[var(--muted)] mb-2">Recommended Actions</h3>
                 <ul class="list-disc pl-4 space-y-1 text-sm">
                   <li v-for="(a,i) in chatStore.lastFeedback.recommended_actions" :key="i">{{ a }}</li>
                 </ul>

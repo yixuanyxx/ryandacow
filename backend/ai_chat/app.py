@@ -32,7 +32,7 @@ def create_app():
         return resp
 
     # Register blueprints
-    from backend.ai_chat.controllers.chat_controller import chat_bp
+    from controllers.chat_controller import chat_bp
     app.register_blueprint(chat_bp, url_prefix="/chat")
 
     return app

@@ -1,7 +1,7 @@
 <!-- src/components/ai/CareerPlanCard.vue -->
 <template>
   <div v-if="plan" class="card glass">
-    <h3>🎯 {{ plan.target_role }}</h3>
+    <h3>{{ plan.target_role }}</h3>
 
     <div class="meta">
       <span>Fit score:</span>
@@ -22,7 +22,7 @@
       <div class="label">Courses</div>
       <ol>
         <li v-for="c in plan.recommended_courses" :key="c.id">
-          #{{ c.id }} — {{ c.title }}
+          #{{ c.id }} - {{ c.title }}
         </li>
       </ol>
     </div>
@@ -42,7 +42,7 @@
 import { computed } from 'vue'
 const props = defineProps({ plan: { type: Object, default: () => null } })
 
-// If backend sends 0–1, convert to percent; if already 0–100, leave as-is.
+// If backend sends 0-1, convert to percent; if already 0-100, leave as-is.
 const fitPct = computed(() => {
   const s = Number(props.plan?.fit_score ?? 0)
   return (s <= 1 ? s * 100 : s).toFixed(1)
@@ -51,7 +51,7 @@ const fitPct = computed(() => {
 
 <style scoped>
 .card {
-  /* themeable “glass” card — no hard white */
+  /* themeable "glass" card - no hard white */
   background: var(--card-bg, rgba(255,255,255,0.06));
   border: 1px solid var(--card-border, rgba(255,255,255,0.08));
   border-radius: 14px;

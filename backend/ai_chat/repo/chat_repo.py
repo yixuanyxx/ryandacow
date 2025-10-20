@@ -1,4 +1,7 @@
-from backend.shared.database import get_db_connection
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from shared.database import get_db_connection
 from datetime import datetime, UTC
 
 class ChatRepo:

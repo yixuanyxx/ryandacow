@@ -1,14 +1,12 @@
 import sys
-sys.path.append('..')
-sys.path.append('../shared')
-sys.path.append('../recommendations')
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from typing import Dict, Any, Optional
 from datetime import datetime, UTC
-import os
 import traceback
-from backend.ai_chat.repo.chat_repo import ChatRepo
-from backend.ai_chat.orchestrator.orchestrator import run_full_plan
-from backend.ai_chat.llm_client import summarize, llm_reply
+from repo.chat_repo import ChatRepo
+from orchestrator.orchestrator import run_full_plan
+from llm_client import summarize, llm_reply
 
 class ChatService:
     def __init__(self, chat_repo: Optional[ChatRepo] = None):

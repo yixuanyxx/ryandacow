@@ -1,7 +1,12 @@
 import json, os, hashlib
+import sys
 from typing import Dict, List, Optional
 from datetime import datetime
-from backend.shared.embeddings import embed_text
+
+# Add the current directory to the path so we can import from shared modules
+sys.path.append(os.path.dirname(__file__))
+
+from embeddings import embed_text
 
 class ProfileIngestor:
     """

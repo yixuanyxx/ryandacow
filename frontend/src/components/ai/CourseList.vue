@@ -1,6 +1,6 @@
 <template>
   <div class="card">
-    <div class="header">📚 Courses</div>
+    <div class="header">Courses</div>
     <ol class="list">
       <li v-for="c in (courses || []).slice(0,3)" :key="c.id">
         <b>#{{ c.id }}</b> {{ c.title }}

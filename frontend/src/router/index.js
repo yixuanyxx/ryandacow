@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth.js'
 import LoginPage from '@/views/LoginPage.vue'
 import DashboardPage from '@/views/DashboardPage.vue'
 import ChatbotPage from '@/views/ChatbotPage.vue'
+import ProfilePage from '@/views/ProfilePage.vue'
 
 const routes = [
   { 
@@ -23,6 +24,11 @@ const routes = [
   { 
     path: '/chat', 
     component: ChatbotPage,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/profile', 
+    component: ProfilePage,
     meta: { requiresAuth: true }
   }
 ]
